@@ -638,3 +638,6 @@ OSD_TREE_ZONE = {
 
 # gather bootstrap
 GATHER_BOOTSTRAP_PATTERN = 'openshift-install gather bootstrap --help'
+
+# All worker default config files
+RHEL_WORKERS_CONF = os.path.join(CONF_DIR, '/ocsci/aws_upi_rhel_workers.yaml')
