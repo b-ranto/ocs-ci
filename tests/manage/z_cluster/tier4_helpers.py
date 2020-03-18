@@ -42,17 +42,25 @@ def get_osd_size():
         get('spec').get('resources').get('requests').get('storage')[:-2]
 
 
-def get_percent_used_capacity():
+def get_percent_used_capacity(ct_pod):
     """
     Function to calculate the percentage of used capacity in a cluster
 
     Returns:
-        int: The percentage of the used capacity in the cluster
+        float: The percentage of the used capacity in the cluster
     """
-    ct_pod = pod_helpers.get_ceph_tools_pod()
-    output = ct_pod.exec_ceph_cmd(ceph_cmd='rados df')
-    return output.get('total_used') / output.get('total_space') * 100
+    output = ct_pod.exec_ceph_cmd(ceph_cmd='ceph df')
+    total_used = (output.get('stats').get('total_used_bytes') / 10 ** 9)
+    total_avail = (output.get('stats').get('total_bytes') / 10 ** 9)
+    return 100.0 * total_used / total_avail
 
+
+def get_used_space(self,ct_pod):
+    #ct_pod = pod.get_ceph_tools_pod()
+    output = ct_pod.exec_ceph_cmd(ceph_cmd='rados df')
+    total_used = float(output.get('total_used') / 10 ** 9)
+    total_avail = float(output.get('total_avail') / 10 ** 9)
+    return 100.0 * total_used / total_avail
 
 def downloader(dest_pod):
     """
@@ -119,12 +127,13 @@ def cluster_filler(pods_to_fill, percent_required_filled):
             logging.info(f"### initiated downloader for {p.name}")
     concurrent_copies = 5 # 3
     cluster_filled = False
+    ct_pod = pod_helpers.get_ceph_tools_pod()
 
     filler_executor = ThreadPoolExecutor()
     while not cluster_filled:
         for copy_iter in range(concurrent_copies):
             for each_pod in pods_to_fill:
-                used_capacity = get_percent_used_capacity()
+                used_capacity = get_percent_used_capacity(ct_pod)
                 logging.info(f"### used capacity %age = {used_capacity}")
                 if used_capacity <= percent_required_filled:
                     filler_executor.submit(filler, each_pod)
